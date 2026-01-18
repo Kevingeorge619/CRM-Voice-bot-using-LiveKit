@@ -6,7 +6,8 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
-        h1 { color: #2c3e50; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h1 { color: #2c3e50; margin: 0; }
         
         .ticket-card {
             background: white;
@@ -20,8 +21,16 @@
             align-items: center;
         }
         
+        /* Style for Closed Tickets */
+        .ticket-card.closed {
+            border-left-color: #95a5a6;
+            opacity: 0.7;
+            background-color: #fafafa;
+        }
+
         .ticket-info h3 { margin: 0 0 5px 0; color: #2c3e50; }
         .ticket-info p { margin: 0; color: #7f8c8d; }
+        
         .status-badge {
             background-color: #2ecc71;
             color: white;
@@ -29,58 +38,93 @@
             border-radius: 15px;
             font-size: 0.8rem;
             font-weight: bold;
+            margin-right: 15px;
         }
-        .refresh-btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-bottom: 20px;
-        }
-        .refresh-btn:hover { background-color: #2980b9; }
+        .status-badge.closed { background-color: #95a5a6; }
+
+        .actions { display: flex; gap: 10px; align-items: center; }
+
+        button { cursor: pointer; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; transition: 0.2s; }
+        
+        .btn-refresh { background-color: #3498db; color: white; }
+        .btn-refresh:hover { background-color: #2980b9; }
+
+        .btn-clear { background-color: #e74c3c; color: white; }
+        .btn-clear:hover { background-color: #c0392b; }
+
+        .btn-close { background-color: #f39c12; color: white; }
+        .btn-close:hover { background-color: #d35400; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🎫 Support Tickets</h1>
-    <button class="refresh-btn" onclick="fetchTickets()">🔄 Refresh List</button>
+    <div class="header">
+        <h1>🎫 Support Tickets</h1>
+        <div>
+            <button class="btn-refresh" onclick="fetchTickets()">🔄 Refresh</button>
+            <button class="btn-clear" onclick="clearAll()">🗑️ Clear All</button>
+        </div>
+    </div>
+    
     <div id="ticket-list">Loading tickets...</div>
 </div>
 
 <script>
+    const API_URL = "http://localhost:8000/api/tickets";
+
     async function fetchTickets() {
         const list = document.getElementById('ticket-list');
         try {
-            const res = await fetch('http://localhost:8000/api/tickets');
+            const res = await fetch(API_URL);
             const tickets = await res.json();
             
             if (tickets.length === 0) {
-                list.innerHTML = "<p>No tickets found yet.</p>";
+                list.innerHTML = "<p>No tickets found.</p>";
                 return;
             }
 
-            list.innerHTML = tickets.map(t => `
-                <div class="ticket-card">
+            // Sort so 'Open' tickets are at the top
+            tickets.sort((a, b) => (a.status === 'Open' ? -1 : 1));
+
+            list.innerHTML = tickets.map(t => {
+                const isClosed = t.status === 'Closed';
+                return `
+                <div class="ticket-card ${isClosed ? 'closed' : ''}">
                     <div class="ticket-info">
                         <h3>#${t.id} - ${t.customer_name}</h3>
                         <p><strong>Issue:</strong> ${t.issue_description}</p>
                         <p><small>${t.customer_email}</small></p>
                     </div>
-                    <span class="status-badge">${t.status}</span>
+                    <div class="actions">
+                        <span class="status-badge ${isClosed ? 'closed' : ''}">${t.status}</span>
+                        ${!isClosed ? `<button class="btn-close" onclick="closeTicket(${t.id})">Mark Closed</button>` : ''}
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
         } catch (e) {
             list.innerHTML = `<p style="color:red">Error loading tickets: ${e.message}</p>`;
         }
     }
 
+    async function closeTicket(id) {
+        if(!confirm("Mark this ticket as closed?")) return;
+        try {
+            await fetch(`${API_URL}/${id}/close`, { method: 'PUT' });
+            fetchTickets(); // Reload list
+        } catch (e) { alert("Error closing ticket"); }
+    }
+
+    async function clearAll() {
+        if(!confirm("WARNING: This will delete ALL tickets permanently. Are you sure?")) return;
+        try {
+            await fetch(API_URL, { method: 'DELETE' });
+            fetchTickets(); // Reload list
+        } catch (e) { alert("Error deleting tickets"); }
+    }
+
     // Load on start
     fetchTickets();
-    // Auto-refresh every 5 seconds
-    setInterval(fetchTickets, 5000);
 </script>
 
 </body>
