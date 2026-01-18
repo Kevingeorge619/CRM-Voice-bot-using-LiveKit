@@ -33,6 +33,9 @@ class TicketCreate(BaseModel):
     issue_description: str
     status: str = "Open"
 
+class TicketAppend(BaseModel):
+    additional_info: str
+
 @app.post("/api/token")
 async def get_token(req: TokenRequest):
     lk_api_key = os.getenv("LIVEKIT_API_KEY")
@@ -45,6 +48,7 @@ async def get_token(req: TokenRequest):
     token = api.AccessToken(lk_api_key, lk_api_secret) \
         .with_identity(req.name) \
         .with_name(req.name) \
+        .with_metadata(req.email) \
         .with_grants(api.VideoGrants(room_join=True, room="support-room"))
 
     return {"token": token.to_jwt(), "ws_url": lk_url}
@@ -80,12 +84,23 @@ def close_ticket(ticket_id: int, db: Session = Depends(database.get_db)):
     db.commit()
     return {"message": "Ticket closed successfully"}
 
-# --- NEW: CLEAR ALL TICKETS ---
+# CLEAR ALL TICKETS 
 @app.delete("/api/tickets")
 def clear_all_tickets(db: Session = Depends(database.get_db)):
     db.query(models.Ticket).delete()
     db.commit()
     return {"message": "All tickets deleted"}
+
+@app.put("/api/tickets/{ticket_id}/append")
+def append_ticket_info(ticket_id: int, update: TicketAppend, db: Session = Depends(database.get_db)):
+    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    # We add the new info to the existing description
+    ticket.issue_description += f"\n\n[Update]: {update.additional_info}"
+    db.commit()
+    return {"message": "Ticket updated", "id": ticket.id}
 
 # --- Static Files & Absolute Paths ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
