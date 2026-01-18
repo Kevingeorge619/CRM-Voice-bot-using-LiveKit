@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+sqlalchemy
+livekit-api
+python-dotenv
+pydantic
