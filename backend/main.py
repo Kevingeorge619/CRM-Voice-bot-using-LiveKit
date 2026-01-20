@@ -73,7 +73,7 @@ def read_tickets(status: str = None, db: Session = Depends(database.get_db)):
         query = query.filter(models.Ticket.status == status)
     return query.all()
 
-# --- NEW: UPDATE TICKET STATUS ---
+# UPDATE TICKET STATUS
 @app.put("/api/tickets/{ticket_id}/close")
 def close_ticket(ticket_id: int, db: Session = Depends(database.get_db)):
     ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
@@ -97,12 +97,11 @@ def append_ticket_info(ticket_id: int, update: TicketAppend, db: Session = Depen
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     
-    # We add the new info to the existing description
     ticket.issue_description += f"\n\n[Update]: {update.additional_info}"
     db.commit()
     return {"message": "Ticket updated", "id": ticket.id}
 
-# --- Static Files & Absolute Paths ---
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(current_dir)
 frontend_path = os.path.join(root_dir, "frontend")

@@ -4,7 +4,6 @@ import asyncio
 import aiohttp
 from dotenv import load_dotenv
 
-# Standard imports compatible with your version
 from livekit.agents import (
     AutoSubscribe, 
     JobContext, 
@@ -44,12 +43,8 @@ async def entrypoint(ctx: JobContext):
     user_name = participant.name or "User"
     user_email = participant.metadata or "unknown@example.com"
     
-    # --- MEMORY STATE ---
-    # We use a dictionary to store memory for this specific call.
-    # This works on ALL versions of Python/LiveKit.
     session_state = {"ticket_id": None}
 
-    # --- DEFINING TOOL INSIDE ENTRYPOINT (CLOSURE) ---
     @function_tool
     async def manage_ticket(issue: str):
         """
@@ -59,11 +54,10 @@ async def entrypoint(ctx: JobContext):
         base_url = "http://localhost:8000/api/tickets"
         current_id = session_state["ticket_id"]
 
-        # SCENARIO A: UPDATE EXISTING TICKET
+        # UPDATE EXISTING TICKET
         if current_id:
             print(f"\n[MEMORY] Found existing Ticket #{current_id}. Appending info...\n")
             url = f"{base_url}/{current_id}/append"
-            # We construct the payload manually for the backend
             payload = {"additional_info": issue}
             
             try:
@@ -76,7 +70,7 @@ async def entrypoint(ctx: JobContext):
             except Exception as e:
                 return f"System Error: {str(e)}"
 
-        # SCENARIO B: CREATE NEW TICKET
+        #CREATE NEW TICKET
         else:
             print(f"\n[NEW] Creating fresh ticket for {user_name}...\n")
             payload = {
@@ -114,7 +108,7 @@ async def entrypoint(ctx: JobContext):
 
     agent_persona = Agent(
         instructions=instructions,
-        tools=[manage_ticket] # Register the inner function
+        tools=[manage_ticket] 
     )
 
     session = AgentSession(

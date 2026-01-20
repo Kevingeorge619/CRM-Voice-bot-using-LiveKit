@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Support - Nexus Tech</title>
+    <title>Live Support - Voxtron Tech</title>
     <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
     <style>
-        /* Consistent Styling */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #2c3e50; color: white; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
@@ -98,7 +97,6 @@
         const userName = localStorage.getItem('crm_userName');
         const userEmail = localStorage.getItem('crm_userEmail');
         
-        // Backend URL (We will build this next)
         const BACKEND_URL = ""; 
         
         let room;
@@ -114,7 +112,7 @@
             updateStatus("Requesting Access...", "yellow");
 
             try {
-                // 1. Fetch Token from Backend
+                // Fetch Token from Backend
                 const response = await fetch(`${BACKEND_URL}/api/token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -125,11 +123,11 @@
                 
                 if (!data.token) throw new Error("Failed to get token");
 
-                // 2. Connect to LiveKit
+                // Connect to LiveKit
                 updateStatus("Connecting to Agent...", "yellow");
                 room = new LivekitClient.Room();
                 
-                // Handle Agent Audio (Subscribe to tracks)
+                // Handle Agent Audio 
                 room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
                     if (track.kind === LivekitClient.Track.Kind.Audio) {
                         const element = track.attach();
@@ -147,7 +145,7 @@
 
                 await room.connect(data.ws_url, data.token);
                 
-                // 3. Enable Microphone
+                // Enable Microphone
                 await room.localParticipant.setMicrophoneEnabled(true);
                 
                 updateStatus("Connected to Agent", "green");
